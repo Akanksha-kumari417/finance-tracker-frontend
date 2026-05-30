@@ -7,12 +7,6 @@ const transactionService = {
     return response.data;
   },
 
-  // Get transaction by ID
-  getTransactionById: async (id) => {
-    const response = await api.get(`/transactions/${id}`);
-    return response.data;
-  },
-
   // Create transaction
   createTransaction: async (transactionData) => {
     const response = await api.post('/transactions', transactionData);
@@ -34,12 +28,6 @@ const transactionService = {
   // Get monthly summary
   getMonthlySummary: async (year, month) => {
     const response = await api.get(`/transactions/summary?year=${year}&month=${month}`);
-    return response.data;
-  },
-
-  // Get transactions by category
-  getTransactionsByCategory: async (category) => {
-    const response = await api.get(`/transactions/category/${category}`);
     return response.data;
   }
 };
