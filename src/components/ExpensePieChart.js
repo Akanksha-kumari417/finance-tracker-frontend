@@ -1,5 +1,5 @@
 import React from 'react';
-import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
+import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
 
 function ExpensePieChart({ summary, loading }) {
   if (loading) {
