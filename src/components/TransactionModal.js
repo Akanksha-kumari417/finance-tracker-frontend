@@ -1,5 +1,19 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { FaTimes } from 'react-icons/fa';
+
+const defaultCategories = [
+  'Food',
+  'Transport',
+  'Entertainment',
+  'Bills',
+  'Shopping',
+  'Healthcare',
+  'Education',
+  'Salary',
+  'Freelance',
+  'Investment',
+  'Other'
+];
 
 function TransactionModal({ isOpen, onClose, onSubmit, transaction, loading }) {
   const [formData, setFormData] = useState({
@@ -11,17 +25,31 @@ function TransactionModal({ isOpen, onClose, onSubmit, transaction, loading }) {
   });
 
   const [errors, setErrors] = useState({});
+  const [customCategory, setCustomCategory] = useState('');
+  const [customCategories, setCustomCategories] = useState(() => {
+    const savedCategories = localStorage.getItem('customCategories');
+    return savedCategories ? JSON.parse(savedCategories) : [];
+  });
+
+  const categories = useMemo(
+    () => [...new Set([...defaultCategories, ...customCategories])],
+    [customCategories]
+  );
 
   // If editing, populate form
   useEffect(() => {
     if (transaction) {
+      const existingCategory = transaction.category || '';
+      const isKnownCategory = categories.includes(existingCategory);
+
       setFormData({
         description: transaction.description,
         amount: transaction.amount,
-        category: transaction.category,
+        category: isKnownCategory ? existingCategory : 'custom',
         type: transaction.type,
         date: transaction.date
       });
+      setCustomCategory(isKnownCategory ? '' : existingCategory);
     } else {
       // Reset form when adding new
       setFormData({
@@ -31,22 +59,9 @@ function TransactionModal({ isOpen, onClose, onSubmit, transaction, loading }) {
         type: 'EXPENSE',
         date: new Date().toISOString().split('T')[0]
       });
+      setCustomCategory('');
     }
-  }, [transaction, isOpen]);
-
-  const categories = [
-    'Food',
-    'Transport',
-    'Entertainment',
-    'Bills',
-    'Shopping',
-    'Healthcare',
-    'Education',
-    'Salary',
-    'Freelance',
-    'Investment',
-    'Other'
-  ];
+  }, [transaction, isOpen, categories]);
 
   const handleChange = (e) => {
     setFormData({
@@ -56,6 +71,13 @@ function TransactionModal({ isOpen, onClose, onSubmit, transaction, loading }) {
     // Clear error for this field
     if (errors[e.target.name]) {
       setErrors({ ...errors, [e.target.name]: '' });
+    }
+  };
+
+  const handleCustomCategoryChange = (e) => {
+    setCustomCategory(e.target.value);
+    if (errors.category) {
+      setErrors({ ...errors, category: '' });
     }
   };
 
@@ -74,6 +96,10 @@ function TransactionModal({ isOpen, onClose, onSubmit, transaction, loading }) {
       newErrors.date = 'Date is required';
     }
 
+    if (formData.category === 'custom' && !customCategory.trim()) {
+      newErrors.category = 'Custom category is required';
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -82,8 +108,19 @@ function TransactionModal({ isOpen, onClose, onSubmit, transaction, loading }) {
     e.preventDefault();
 
     if (validate()) {
+      const category = formData.category === 'custom'
+        ? customCategory.trim()
+        : formData.category;
+
+      if (formData.category === 'custom' && !customCategories.includes(category)) {
+        const updatedCategories = [...customCategories, category];
+        setCustomCategories(updatedCategories);
+        localStorage.setItem('customCategories', JSON.stringify(updatedCategories));
+      }
+
       const dataToSubmit = {
         ...formData,
+        category,
         amount: parseFloat(formData.amount)
       };
       onSubmit(dataToSubmit);
@@ -195,14 +232,36 @@ function TransactionModal({ isOpen, onClose, onSubmit, transaction, loading }) {
               name="category"
               value={formData.category}
               onChange={handleChange}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
+                errors.category
+                  ? 'border-red-500 focus:ring-red-500'
+                  : 'border-gray-300 focus:ring-blue-500'
+              }`}
             >
               {categories.map((cat) => (
                 <option key={cat} value={cat}>
                   {cat}
                 </option>
               ))}
+              <option value="custom">Add custom category...</option>
             </select>
+            {formData.category === 'custom' && (
+              <input
+                type="text"
+                name="customCategory"
+                value={customCategory}
+                onChange={handleCustomCategoryChange}
+                className={`w-full mt-3 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
+                  errors.category
+                    ? 'border-red-500 focus:ring-red-500'
+                    : 'border-gray-300 focus:ring-blue-500'
+                }`}
+                placeholder="Enter your category"
+              />
+            )}
+            {errors.category && (
+              <p className="text-red-500 text-sm mt-1">{errors.category}</p>
+            )}
           </div>
 
           {/* Date */}
